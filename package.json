@@ -1,0 +1,19 @@
+{
+  "name": "cerealserver",
+  "version": "1.0.0",
+  "description": "Simple server to manage communication through serial port",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/marcoaimo/CerealServer.git"
+  },
+  "author": "maimo",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/marcoaimo/CerealServer/issues"
+  },
+  "homepage": "https://github.com/marcoaimo/CerealServer#readme"
+}
