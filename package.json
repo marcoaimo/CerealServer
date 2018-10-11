@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/marcoaimo/CerealServer/issues"
   },
-  "homepage": "https://github.com/marcoaimo/CerealServer#readme"
+  "homepage": "https://github.com/marcoaimo/CerealServer#readme",
+  "dependencies": {
+    "serialport": "^7.0.2"
+  }
 }
