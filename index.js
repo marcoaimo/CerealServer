@@ -17,6 +17,9 @@ class CerealServer {
     this.client.on('error', (error) => console.log('Error on serial connection', error))
     this.parser.on('data', this.callback)
   }
+  stop () {
+    this.client.close()
+  }
   broadcast (msg) {
     this.client.write(msg)
   }
