@@ -26,6 +26,12 @@ const _closeClientConnection = (server, client) => {
 
 const _connectSerialPort = (server, ports) => {
   try {
+    if (server.ports && server.ports.length > 0) {
+      ports = server.ports.map((searchStr) => ports.filter((p) => {
+        let regxp = new RegExp(searchStr).exec(p.comName)
+        return regxp ? regxp.includes(p.comName) : false
+      })).reduce((a,b) => a.indexOf(b[0]) >= 0 ? [] : a.concat(b), [])
+    }
     if (!ports || ports.length <= 0) throw new Error('No serial ports detected!')
     ports.forEach((p) => {
       let port = new CerealPort(p)
