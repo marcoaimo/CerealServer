@@ -3,9 +3,11 @@
 const SerialPort = require('serialport')
 const LOCKED_SERIAL_PORTS = []
 const _defaults = {
-  port: null,
+  ports: null,
   baudRate: 9600,
-  heartBeatTime: 500
+  heartBeatTime: 500,
+  openCallback: (client) => console.log('Open serial connection', client.path),
+  closeCallback: (client) => console.log('Closed serial connection', client.path)
 }
 
 const _findPortByName = (comName) => {
@@ -24,6 +26,12 @@ const _closeClientConnection = (server, client) => {
 
 const _connectSerialPort = (server, ports) => {
   try {
+    if (server.ports && server.ports.length > 0) {
+      ports = server.ports.map((searchStr) => ports.filter((p) => {
+        let regxp = new RegExp(searchStr).exec(p.comName)
+        return regxp ? regxp.includes(p.comName) : false
+      })).reduce((a,b) => a.indexOf(b[0]) >= 0 ? [] : a.concat(b), [])
+    }
     if (!ports || ports.length <= 0) throw new Error('No serial ports detected!')
     ports.forEach((p) => {
       let port = new CerealPort(p)
@@ -32,15 +40,15 @@ const _connectSerialPort = (server, ports) => {
       let parser = client.pipe(new server.parser())
       port.lock()
 
-      client.on('open', () => console.log('Open serial connection', client.path))
+      client.on('open', () => server.openCallback(client))
       client.on('close', () => {
-        console.log('Closed serial connection', client.path)
+        server.closeCallback(client)
         _closeClientConnection(server, client)
         parser = null
         port.unlock()
       })
       client.on('error', (error) => console.log('Error on serial connection', error))
-      parser.on('data', server.callback)
+      parser.on('data', server.dataHandler)
 
       server.clients.push(client)
     })
@@ -70,12 +78,13 @@ class CerealPort {
 }
 
 class CerealServer {
-  constructor (options, callback) {
+  constructor (options, dataHandler) {
     Object.assign(this, _defaults, options)
     this.clients = []
     this.parser = SerialPort.parsers.Readline
-    this.callback = callback
+    this.dataHandler = dataHandler
     this.heartBeatInterval = null
+    if (this.ports && !Array.isArray(this.ports)) this.ports = [this.ports]
   }
   start () {
     let _serialPortsCheck = () => SerialPort.list().then((ports) => _connectSerialPort(this, ports))
