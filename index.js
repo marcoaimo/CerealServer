@@ -16,12 +16,10 @@ const _findPortByName = (comName) => {
   return port
 }
 
-const _closeClientConnection = (server, client, parser, port) => {
+const _closeClientConnection = (server, client) => {
   let clientIndex = server.clients.indexOf(client)
   if (clientIndex >= 0) server.clients.splice(clientIndex, 1)
   client = null
-  parser = null
-  port.unlock()
 }
 
 const _connectSerialPort = (server, ports) => {
@@ -31,13 +29,15 @@ const _connectSerialPort = (server, ports) => {
       let port = new CerealPort(p)
       if (port.locked) return
       let client = new SerialPort(port.comName, server.baudRate)
-      let parser = client.pipe(new SerialPort.parsers.Readline())
+      let parser = client.pipe(new server.parser())
       port.lock()
 
       client.on('open', () => console.log('Open serial connection', client.path))
       client.on('close', () => {
         console.log('Closed serial connection', client.path)
-        _closeClientConnection(server, client, parser, port)
+        _closeClientConnection(server, client)
+        parser = null
+        port.unlock()
       })
       client.on('error', (error) => console.log('Error on serial connection', error))
       parser.on('data', server.callback)
@@ -73,6 +73,7 @@ class CerealServer {
   constructor (options, callback) {
     Object.assign(this, _defaults, options)
     this.clients = []
+    this.parser = SerialPort.parsers.Readline
     this.callback = callback
     this.heartBeatInterval = null
   }
