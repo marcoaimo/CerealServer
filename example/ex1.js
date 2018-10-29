@@ -2,7 +2,8 @@
 
 const { CerealServer } = require('../')
 
-let cereal = new CerealServer({port: '/dev/tty.usbmodem1411' }, (data) => console.log(data))
+let portCheck = /(com)([1-4])| *(usbmodem)(141[1-3])/gi
+let cereal = new CerealServer({ports: portCheck }, (data) => console.log(data))
 cereal.start()
 setInterval(function () {
   console.log('Write on serial')
