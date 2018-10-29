@@ -16,23 +16,34 @@ const _findPortByName = (comName) => {
   return port
 }
 
+const _closeClientConnection = (server, client, parser, port) => {
+  let clientIndex = server.clients.indexOf(client)
+  if (clientIndex >= 0) server.clients.splice(clientIndex, 1)
+  client = null
+  parser = null
+  port.unlock()
+}
+
 const _connectSerialPort = (server, ports) => {
   try {
-    if (ports.length <= 0) throw new Error('No serial ports detected!')
-    let port = new CerealPort(ports[0])
-    if (port.locked) return
-    server.client = new SerialPort(port.comName, server.baudRate)
-    server.parser = server.client.pipe(new SerialPort.parsers.Readline())
-    port.lock()
+    if (!ports || ports.length <= 0) throw new Error('No serial ports detected!')
+    ports.forEach((p) => {
+      let port = new CerealPort(p)
+      if (port.locked) return
+      let client = new SerialPort(port.comName, server.baudRate)
+      let parser = client.pipe(new SerialPort.parsers.Readline())
+      port.lock()
 
-    server.client.on('open', () => console.log('Open serial connection', server.client.path))
-    server.client.on('close', () => {
-      console.log('Closed serial connection', server.client.path)
-      server.client = null
-      port.unlock()
+      client.on('open', () => console.log('Open serial connection', client.path))
+      client.on('close', () => {
+        console.log('Closed serial connection', client.path)
+        _closeClientConnection(server, client, parser, port)
+      })
+      client.on('error', (error) => console.log('Error on serial connection', error))
+      parser.on('data', server.callback)
+
+      server.clients.push(client)
     })
-    server.client.on('error', (error) => console.log('Error on serial connection', error))
-    server.parser.on('data', server.callback)
   } catch (err) {
     return console.error(err)
   }
@@ -61,7 +72,7 @@ class CerealPort {
 class CerealServer {
   constructor (options, callback) {
     Object.assign(this, _defaults, options)
-    this.client = null
+    this.clients = []
     this.callback = callback
     this.heartBeatInterval = null
   }
@@ -77,16 +88,16 @@ class CerealServer {
         clearInterval(this.heartBeatInterval)
         this.heartBeatInterval = null
       }
-      if (!this.client) throw new Error('No client connected!')
-      this.client.close()
+      if (!this.clients || this.clients.length <= 0) throw new Error('No client connected!')
+      this.clients.forEach((cli) => cli.close())
     } catch (err) {
       return console.error(err)
     }
   }
   broadcast (msg) {
     try {
-      if (!this.client) throw new Error('No client connected!')
-      this.client.write(msg)
+      if (!this.clients || this.clients.length <= 0) throw new Error('No client connected!')
+      this.clients.forEach((cli) => cli.write(msg))
     } catch (err) {
       return console.error(err)
     }
