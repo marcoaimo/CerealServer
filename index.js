@@ -4,7 +4,8 @@ const SerialPort = require('serialport')
 const LOCKED_SERIAL_PORTS = []
 const _defaults = {
   port: null,
-  baudRate: 9600
+  baudRate: 9600,
+  heartBeatTime: 500
 }
 
 const _findPortByName = (comName) => {
@@ -62,15 +63,21 @@ class CerealServer {
     Object.assign(this, _defaults, options)
     this.client = null
     this.callback = callback
+    this.heartBeatInterval = null
   }
   start () {
     let _serialPortsCheck = () => SerialPort.list().then((ports) => _connectSerialPort(this, ports))
     console.info('start cereal server for serial ports communication')
     _serialPortsCheck()
-    setInterval(_serialPortsCheck, 15000)
+    this.heartBeatInterval = setInterval(_serialPortsCheck, this.heartBeatTime)
   }
   stop () {
     try {
+      if (this.heartBeatInterval) {
+        clearInterval(this.heartBeatInterval)
+        this.heartBeatInterval = null
+      }
+      if (!this.client) throw new Error('No client connected!')
       this.client.close()
     } catch (err) {
       return console.error(err)
@@ -78,6 +85,7 @@ class CerealServer {
   }
   broadcast (msg) {
     try {
+      if (!this.client) throw new Error('No client connected!')
       this.client.write(msg)
     } catch (err) {
       return console.error(err)
