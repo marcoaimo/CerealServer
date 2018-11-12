@@ -1,6 +1,6 @@
 {
   "name": "cerealserver",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Simple server to manage communication through serial port",
   "main": "index.js",
   "scripts": {
